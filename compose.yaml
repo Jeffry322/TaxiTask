@@ -1,0 +1,48 @@
+﻿version: '3.9'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    restart: unless-stopped
+    networks:
+      - sqlserver_network
+
+  sql-init:
+    image: mcr.microsoft.com/mssql-tools
+    container_name: taxi-sql-init
+    depends_on:
+      - sqlserver
+    volumes:
+      - ./create-db.sql:/scripts/create-db.sql:ro
+    environment:
+      SA_PASSWORD: "YourStrong@Passw0rd"
+    entrypoint: >
+      /bin/bash -c '
+      echo "Waiting for SQL Server...";
+      echo "SA_PASSWORD is $$SA_PASSWORD";
+      if [ -z "$$SA_PASSWORD" ]; then
+        echo "ERROR: SA_PASSWORD is empty inside sql-init container"; exit 1;
+      fi;
+      until /opt/mssql-tools/bin/sqlcmd -S tcp:sqlserver,1433 -U sa -P "$$SA_PASSWORD" -C -Q "SELECT 1";
+      do
+        echo "SQL Server not ready yet, retrying...";
+        sleep 5;
+      done;
+      echo "SQL Server is up. Running init script...";
+      /opt/mssql-tools/bin/sqlcmd -S tcp:sqlserver,1433 -U sa -P "$$SA_PASSWORD" -C -d master -i /scripts/create-db.sql;
+      echo "Schema created.";
+      '
+    restart: "no"
+    networks:
+      - sqlserver_network
+
+networks:
+  sqlserver_network:
+    driver: bridge
