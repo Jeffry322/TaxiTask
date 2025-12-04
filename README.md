@@ -29,4 +29,8 @@
 ### Additonal info ###
 1. CSV Has 29889 unique records, and 111 duplicates
 2. If I would have much larger datasets I would avoid loading data in memory. Firstly I would break the incoming file in batches, and BulkCopy batch by batch. In Memory dedupe also doesn't scale very well, so I maybe would use database as staging.
-3. About security: I TryParse every item from csv, so on bad data I just write default values, we could also just skip the row entirely in TryParse boyd, and log it. Also I used Dapper, and Dapper's parameters aren't vulnerable to SQL injections as string interpolation.
+3. About security: I TryParse every item from csv, so on bad data I just write default values, we could also just skip the row entirely in TryParse body, and log it. Also I used Dapper, and Dapper's parameters aren't vulnerable to SQL injections as string interpolation.
+4. Also I've used persistent computed columns for duration, so we don't calculcate duratiaon each time. Also I've used indexes for specific queries that this application does, to perform them more efficently.
+5. Indexes on TravelDuration, and TripDistance, to efficently do TOP 100 on them
+6. Index on PickUpLocationId including tip is enough to fully cover the query for getiing avg tip for location.
+7. Index on PickupLocation and PickupDate, allows us to group all rides by pickup location, which makes searches for date range in specfic Id efficient. 
